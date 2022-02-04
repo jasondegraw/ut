@@ -802,6 +802,31 @@ struct le_ : op {
   const bool value_{};
 };
 
+template <class TLhs, class TRhs, class TEps>
+struct close_ : op {
+  constexpr close_(const TLhs& lhs = {}, const TRhs& rhs = {}, const TEps& eps = {})
+      : lhs_{lhs}, rhs_{rhs}, eps_{eps}, value_{[&] {
+          using std::operator==;
+          using std::operator<;
+
+          if constexpr (type_traits::has_value_v<TLhs> and
+                        type_traits::has_value_v<TRhs>) {
+            return math::abs(TLhs::value - TRhs::value) < eps;
+          } else {
+            return math::abs(get(lhs) - get(rhs)) < eps;
+          }
+        }()} {}
+
+  [[nodiscard]] constexpr operator bool() const { return value_; }
+  [[nodiscard]] constexpr auto lhs() const { return get(lhs_); }
+  [[nodiscard]] constexpr auto rhs() const { return get(rhs_); }
+
+  const TLhs lhs_{};
+  const TRhs rhs_{};
+  const TEps eps_{};
+  const bool value_{};
+};
+
 template <class TLhs, class TRhs>
 struct and_ : op {
   constexpr and_(const TLhs& lhs = {}, const TRhs& rhs = {})
@@ -2188,6 +2213,10 @@ template <class TLhs, class TRhs>
 template <class TLhs, class TRhs>
 [[nodiscard]] constexpr auto le(const TLhs& lhs, const TRhs& rhs) {
   return detail::le_{lhs, rhs};
+}
+template <class TLhs, class TRhs, class TEps>
+[[nodiscard]] constexpr auto close(const TLhs& lhs, const TRhs& rhs, const TEps& eps) {
+  return detail::close_{ lhs, rhs, eps };
 }
 
 template <class T>
